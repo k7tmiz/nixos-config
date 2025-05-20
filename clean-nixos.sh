@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 确保脚本以 root 用户运行
 if [ "$(id -u)" -ne 0 ]; then
