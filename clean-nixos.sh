@@ -9,5 +9,3 @@ echo "Running garbage collection..."
 sudo nix-collect-garbage -d
 
 echo "Cleanup complete. Only the latest 2 system snapshots are retained."
-
-
