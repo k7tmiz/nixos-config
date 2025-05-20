@@ -1,11 +1,31 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# 保留最近 2 个 system generations，其余删除
-echo "Deleting old system generations..."
-sudo nix-env --delete-generations +2 --profile /nix/var/nix/profiles/system
+# 确保脚本以 root 用户运行
+if [ "$(id -u)" -ne 0 ]; then
+    echo "此脚本必须以 root 用户运行" >&2
+    exit 1
+fi
 
-# 垃圾回收，删除不再使用的 Nix store 对象
-echo "Running garbage collection..."
-sudo nix-collect-garbage -d
+# 获取所有系统生成的列表，并提取生成号
+generations=$(nix-env -p /nix/var/nix/profiles/system --list-generations | awk '{print $1}' | sed 's/generation //' | sort -n)
 
-echo "Cleanup complete. Only the latest 2 system snapshots are retained."
+# 将生成号转换为数组
+mapfile -t gen_array <<< "$generations"
+
+# 获取总生成数
+total=${#gen_array[@]}
+
+if [ $total -gt 2 ]; then
+    # 获取倒数第二个生成号（即第二个最新的生成）
+    second_last=${gen_array[-2]}
+    
+    # 删除所有比倒数第二个生成号更旧的生成
+    for gen in "${gen_array[@]}"; do
+        if [ $gen -lt $second_last ]; then
+            nix-env -p /nix/var/nix/profiles/system --delete-generations $gen
+        fi
+    done
+    echo "已删除生成号小于 $second_last 的所有生成"
+else
+    echo "系统中只有两个或更少的生成，无需删除"
+fi
